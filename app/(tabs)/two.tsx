@@ -1,14 +1,40 @@
-import { StyleSheet } from 'react-native';
+// app/(tabs)/two.tsx
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Button, Text }     from 'react-native-elements';
+import { signOut }          from 'firebase/auth';
+import { auth }             from '../../src/firebase';
+import { useRouter }        from 'expo-router';
 
-export default function TabTwoScreen() {
+export default function SettingsTab() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (e: any) {
+      // You can also use RNE’s Dialog or Toast component here
+      console.error('Logout failed', e.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
+      <Text h3 style={styles.title}>
+        ⚙️ Settings
+      </Text>
+
+      {/* …other settings items… */}
+
+      <Button
+        title="Log Out"
+        onPress={handleLogout}
+        buttonStyle={styles.logoutButton}
+        titleStyle={{ color: 'white' }}
+        icon={{ name: 'exit-to-app', type: 'material', color: 'white' }}
+      />
     </View>
   );
 }
@@ -16,16 +42,16 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
+    padding: 16,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  logoutButton: {
+    backgroundColor: '#d9534f',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
 });

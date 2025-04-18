@@ -23,8 +23,13 @@ export default function TabOneScreen() {
         const val = snapshot.val();
         console.log('Firebase snapshot at energy_data:', val);
         const list = val
-          ? Object.entries(val).map(([key, item]) => ({ key, ...item }))
+          ? Object.entries(val)
+            .map(([key, item]) => ({
+               key,
+              ...(typeof item === 'object' && item !== null ? item : {})
+            }))
           : [];
+
         setData(list);
         setLoading(false);
       },
