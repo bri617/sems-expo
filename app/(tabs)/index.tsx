@@ -1,77 +1,83 @@
 // app/(tabs)/index.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  ActivityIndicator
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import { ref, onValue } from 'firebase/database';
-import { db }           from '../../src/firebase';
+import { LineChart } from 'react-native-gifted-charts';
+import { Defs, LinearGradient, Stop } from 'react-native-svg';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  QuerySnapshot,
+} from 'firebase/firestore';
+import { db } from '../../src/firebase';  // ← your Firestore export
 
-export default function TabOneScreen() {
-  const [data, setData]       = useState<any[]>([]);
+const { width } = Dimensions.get('window');
+
+type ChartPoint = { value: number };
+
+export default function HomeTab() {
+  const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const dataRef = ref(db, 'energy_data/');
-    const unsubscribe = onValue(
-      dataRef,
-      snapshot => {
-        const val = snapshot.val();
-        console.log('Firebase snapshot at energy_data:', val);
-        const list = val
-          ? Object.entries(val)
-            .map(([key, item]) => ({
-               key,
-              ...(typeof item === 'object' && item !== null ? item : {})
-            }))
-          : [];
+    const q = query(
+      collection(db, 'energyData'),
+      orderBy('timestamp', 'asc')
+    );
 
-        setData(list);
+    const unsubscribe = onSnapshot(
+      q,
+      (snap: QuerySnapshot) => {
+        const pts = snap.docs.map(doc => ({
+          value: (doc.data().power ?? 0) as number,
+        }));
+        setData(pts);
         setLoading(false);
       },
-      error => {
-        console.error('Firebase error:', error);
+      err => {
+        console.error('Firestore error:', err);
         setLoading(false);
       }
     );
-    return () => unsubscribe();
+
+    return unsubscribe;
   }, []);
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text>No energy data found 😕</Text>
-        <Text>Check your Firebase path and rules.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Live Energy Readings</Text>
-      <FlatList
+      <Text style={styles.title}>Energy Usage</Text>
+      <LineChart
         data={data}
-        keyExtractor={item => item.key}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.device}>{item.deviceName}</Text>
-            <Text>Power: {item.power} W</Text>
-            <Text>Voltage: {item.voltage} V</Text>
-            <Text>Current: {item.current} A</Text>
-            <Text>{new Date(item.timestamp).toLocaleString()}</Text>
-          </View>
+        width={width - 32}
+        height={200}
+        spacing={10}
+        hideDataPoints
+        lineGradient
+        lineGradientId="lineGradient"
+        lineGradientComponent={() => (
+          <Defs>
+            <LinearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="blue" />
+              <Stop offset="0.5" stopColor="orange" />
+              <Stop offset="1" stopColor="green" />
+            </LinearGradient>
+          </Defs>
         )}
       />
     </View>
@@ -79,19 +85,7 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  center:    { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  title:     { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
-  card:      {
-    backgroundColor: '#fff',
-    padding: 12,
-    marginVertical: 6,
-    borderRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  device:    { fontSize: 18, fontWeight: '600' }
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  center:    { justifyContent: 'center', alignItems: 'center' },
+  title:     { fontSize: 18, marginBottom: 12, fontWeight: '600' },
 });
-
