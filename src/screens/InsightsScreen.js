@@ -36,7 +36,7 @@ export default function InsightsScreen() {
         // plain JS: no type assertions
         const pts = snapshot.docs.map(doc => {
           const d = doc.data();
-          return { value: d.power || 0 };
+          return { value: d.random || 0 };
         });
         setData(pts);
         setLoading(false);
@@ -58,29 +58,29 @@ export default function InsightsScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Real‑Time Energy Usage</Text>
-      <LineChart
-        data={data}
-        width={width - 32}
-        height={200}
-        spacing={10}
-        hideDataPoints
-        lineGradient
-        lineGradientId="ggrd"
-        lineGradientComponent={() => (
-          <Defs>
-            <LinearGradient id="ggrd" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="blue" />
-              <Stop offset="0.5" stopColor="orange" />
-              <Stop offset="1" stopColor="green" />
-            </LinearGradient>
-          </Defs>
-        )}
-      />
-    </View>
-  );
+  // return (
+  //   <View style={styles.container}>
+  //     <Text style={styles.title}>Real‑Time Energy Usage</Text>
+  //     <LineChart
+  //       data={data}
+  //       width={width - 32}
+  //       height={200}
+  //       spacing={10}
+  //       hideDataPoints
+  //       lineGradient
+  //       lineGradientId="ggrd"
+  //       lineGradientComponent={() => (
+  //         <Defs>
+  //           <LinearGradient id="ggrd" x1="0" y1="0" x2="0" y2="1">
+  //             <Stop offset="0" stopColor="red" />
+  //             <Stop offset="0.5" stopColor="orange" />
+  //             <Stop offset="1" stopColor="green" />
+  //           </LinearGradient>
+  //         </Defs>
+  //       )}
+  //     />
+  //   </View>
+  // );
 }
 
 const styles = StyleSheet.create({

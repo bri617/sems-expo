@@ -1,8 +1,9 @@
 // src/firebase.js
+
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore }                   from 'firebase/firestore';
-import { getAuth }                        from 'firebase/auth';
-import { getDatabase }                    from 'firebase/database';
+import { getAuth }                         from 'firebase/auth';
+import { getDatabase }                     from 'firebase/database';
+import { getFirestore }                    from 'firebase/firestore';
 
 // Your Firebase project configuration
 const firebaseConfig = {
@@ -16,11 +17,14 @@ const firebaseConfig = {
   measurementId: "G-35CB9407PG"
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Initialize the app once (avoids HMR duplicate‑init)
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Firestore
-export const db   = getFirestore(app);
-// Auth (web SDK entrypoint)
+// Export Auth instance (so `import { auth } from '../src/firebase'` works)
 export const auth = getAuth(app);
-// Realtime Database
+
+// Export Realtime Database instance
 export const rtdb = getDatabase(app);
+
+// (Optional) Export Firestore if you’re still using it elsewhere
+export const db = getFirestore(app);
