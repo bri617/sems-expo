@@ -1,4 +1,4 @@
-// screens/InsightsScreen.tsx
+// src/screens/InsightsScreen.js
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -15,34 +15,29 @@ import {
   query,
   orderBy,
   onSnapshot,
-  QuerySnapshot,
 } from 'firebase/firestore';
-import { db } from '../src/firebase';  // path to your firebase.js
+import { db } from '../src/firebase';
 
 const { width } = Dimensions.get('window');
 
-type ChartPoint = { value: number };
-
 export default function InsightsScreen() {
-  const [data, setData] = useState<ChartPoint[]>([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1) Build a query on the 'energyData' collection,
-    //    ordering by your timestamp field ascending:
     const q = query(
       collection(db, 'energyData'),
       orderBy('timestamp', 'asc')
     );
 
-    // 2) Listen in real‑time:
     const unsubscribe = onSnapshot(
       q,
-      (snap: QuerySnapshot) => {
-        const pts = snap.docs.map(doc => ({
-          // adjust 'power' to whatever numeric field you store
-          value: (doc.data().power ?? 0) as number,
-        }));
+      snapshot => {
+        // plain JS: no type assertions
+        const pts = snapshot.docs.map(doc => {
+          const d = doc.data();
+          return { value: d.power || 0 };
+        });
         setData(pts);
         setLoading(false);
       },
@@ -52,11 +47,9 @@ export default function InsightsScreen() {
       }
     );
 
-    // 3) Cleanup on unmount:
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  // 4) Show a loader until first batch arrives:
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -65,7 +58,6 @@ export default function InsightsScreen() {
     );
   }
 
-  // 5) Render your gradient line chart:
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Real‑Time Energy Usage</Text>

@@ -4,80 +4,87 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  FlatList,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { LineChart } from 'react-native-gifted-charts';
-import { Defs, LinearGradient, Stop } from 'react-native-svg';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  QuerySnapshot,
-} from 'firebase/firestore';
-import { db } from '../../src/firebase';  // ← your Firestore export
+import { rtdb } from '../../src/firebase';            // make sure you export getDatabase as `rtdb`
+import { ref, onValue } from 'firebase/database';
 
-const { width } = Dimensions.get('window');
+// 1) Define your item type:
+type EnergyItem = {
+  key: string;
+  deviceName: string;
+  power: number;
+  voltage: number;
+  current: number;
+  timestamp: number;
+};
 
-type ChartPoint = { value: number };
-
-export default function HomeTab() {
-  const [data, setData] = useState<ChartPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function TabOneScreen() {
+  // 2) Tell useState the generic type:
+  const [data, setData] = useState<EnergyItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'energyData'),
-      orderBy('timestamp', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snap: QuerySnapshot) => {
-        const pts = snap.docs.map(doc => ({
-          value: (doc.data().power ?? 0) as number,
-        }));
-        setData(pts);
+    const dataRef = ref(rtdb, 'energy_data/');
+    const unsubscribe = onValue(
+      dataRef,
+      snapshot => {
+        const val = snapshot.val() as Record<string, Omit<EnergyItem, 'key'>>;
+        // 3) Build a typed list:
+        const list: EnergyItem[] = Object.entries(val || {}).map(
+          ([key, item]) => ({
+            key,
+            deviceName: item.deviceName,
+            power:      item.power,
+            voltage:    item.voltage,
+            current:    item.current,
+            timestamp:  item.timestamp,
+          })
+        );
+        setData(list);
         setLoading(false);
       },
-      err => {
-        console.error('Firestore error:', err);
+      error => {
+        console.error('Firebase RTDB error:', error);
         setLoading(false);
       }
     );
-
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={styles.center}>
         <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text>No energy data found 😕</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Energy Usage</Text>
-      <LineChart
+      <Text style={styles.title}>Live Energy Readings</Text>
+      {/* 4) Optionally, give FlatList the generic too: */}
+      <FlatList<EnergyItem>
         data={data}
-        width={width - 32}
-        height={200}
-        spacing={10}
-        hideDataPoints
-        lineGradient
-        lineGradientId="lineGradient"
-        lineGradientComponent={() => (
-          <Defs>
-            <LinearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="blue" />
-              <Stop offset="0.5" stopColor="orange" />
-              <Stop offset="1" stopColor="green" />
-            </LinearGradient>
-          </Defs>
+        keyExtractor={item => item.key}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.device}>{item.deviceName}</Text>
+            <Text>Power: {item.power} W</Text>
+            <Text>Voltage: {item.voltage} V</Text>
+            <Text>Current: {item.current} A</Text>
+            <Text>{new Date(item.timestamp).toLocaleString()}</Text>
+          </View>
         )}
       />
     </View>
@@ -85,7 +92,18 @@ export default function HomeTab() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  center:    { justifyContent: 'center', alignItems: 'center' },
-  title:     { fontSize: 18, marginBottom: 12, fontWeight: '600' },
+  container: { flex: 1, padding: 16 },
+  center:    { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title:     { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+  card: {
+    backgroundColor: '#fff',
+    padding: 12,
+    marginVertical: 6,
+    borderRadius: 8,
+    shadowOffset:  { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius:  4,
+    elevation:     3,
+  },
+  device: { fontSize: 18, fontWeight: '600' },
 });
