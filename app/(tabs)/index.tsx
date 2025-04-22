@@ -94,3 +94,4 @@ const styles = StyleSheet.create({
   },
   device:    { fontSize: 18, fontWeight: '600' }
 });
+
