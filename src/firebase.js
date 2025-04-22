@@ -1,27 +1,32 @@
 // src/firebase.js
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-import { getDatabase } from 'firebase/database';
 
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import {
+  initializeAuth,
+  getReactNativePersistence,
+} from 'firebase/auth/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Replace these values with your Firebase project configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC7yEofc6jbwK0QJN14O-QdhJAGpD1dgRE",
   authDomain: "seems-c0797.firebaseapp.com",
   databaseURL: "https://seems-c0797-default-rtdb.firebaseio.com",
   projectId: "seems-c0797",
-  storageBucket: "seems-c0797.firebasestorage.app",
+  storageBucket: "seems-c0797.appspot.com",
   messagingSenderId: "1068064809876",
   appId: "1:1068064809876:web:fb67107de1b2ead4df2581",
-  measurementId: "G-35CB9407PG"
+  measurementId: "G-35CB9407PG",
 };
 
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase App (prevents re-initialization)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Persist auth state across restarts:
-import { getAuth } from 'firebase/auth';
+// Initialize Auth with React Native persistence
 export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  persistence: getReactNativePersistence(AsyncStorage),
 });
 
-// Real‑time database:
-export const db = getDatabase(app);
+// Initialize Firestore
+export const db = getFirestore(app);
