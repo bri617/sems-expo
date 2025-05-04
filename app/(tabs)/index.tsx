@@ -1,5 +1,3 @@
-// app/(tabs)/index.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { rtdb } from '../../src/firebase';            // make sure you export getDatabase as `rtdb`
+import { rtdb } from '../../src/firebase';
 import { ref, onValue } from 'firebase/database';
 
 // 1) Define your item type:
@@ -21,8 +19,19 @@ type EnergyItem = {
   timestamp: number;
 };
 
+// 🕒 Helper to display "x minutes ago"
+function timeAgo(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export default function TabOneScreen() {
-  // 2) Tell useState the generic type:
   const [data, setData] = useState<EnergyItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -31,8 +40,8 @@ export default function TabOneScreen() {
     const unsubscribe = onValue(
       dataRef,
       snapshot => {
-        const val = snapshot.val() as Record<string, Omit<EnergyItem, 'key'>>;
-        // 3) Build a typed list:
+        const val = snapshot.val() as Record<string, Omit<EnergyItem, 'key' | 'timestamp'>>;
+        const now = Date.now();
         const list: EnergyItem[] = Object.entries(val || {}).map(
           ([key, item]) => ({
             key,
@@ -40,7 +49,7 @@ export default function TabOneScreen() {
             power:      item.power,
             voltage:    item.voltage,
             current:    item.current,
-            timestamp:  item.timestamp,
+            timestamp:  now, // ⏱️ generate timestamp when received
           })
         );
         setData(list);
@@ -73,7 +82,6 @@ export default function TabOneScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Live Energy Readings</Text>
-      {/* 4) Optionally, give FlatList the generic too: */}
       <FlatList<EnergyItem>
         data={data}
         keyExtractor={item => item.key}
@@ -83,7 +91,16 @@ export default function TabOneScreen() {
             <Text>Power: {item.power} W</Text>
             <Text>Voltage: {item.voltage} V</Text>
             <Text>Current: {item.current} A</Text>
-            <Text>{new Date(item.timestamp).toLocaleString()}</Text>
+            <Text style={styles.timestamp}>
+              Recorded: {new Date(item.timestamp).toLocaleString([], {
+                weekday: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                month: 'short',
+                day: 'numeric',
+              })} ({timeAgo(item.timestamp)})
+            </Text>
           </View>
         )}
       />
@@ -106,4 +123,5 @@ const styles = StyleSheet.create({
     elevation:     3,
   },
   device: { fontSize: 18, fontWeight: '600' },
+  timestamp: { color: '#666', fontSize: 12, marginTop: 4 },
 });
